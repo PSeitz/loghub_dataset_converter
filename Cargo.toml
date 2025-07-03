@@ -1,0 +1,12 @@
+[package]
+name = "datasets"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+anyhow   = "1"
+flate2   = "1.0"
+tar      = "0.4"
+walkdir  = "2"
+zip      = { version = "0.6", default-features = false, features = ["deflate"] }
+
