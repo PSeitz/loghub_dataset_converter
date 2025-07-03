@@ -5,19 +5,10 @@
 //!
 //! All log entries remain *one per line*; sub-directories inside the archive are flattened.
 //!
-//! ---
-//! **Cargo dependencies**
-//! ```toml
-//! anyhow   = "1"
-//! flate2   = "1.0"
-//! tar      = "0.4"
-//! walkdir  = "2"
-//! zip      = { version = "0.6", default-features = false, features = ["deflate"] }
-//! ```
 
 use std::{
     fs::File,
-    io::{self, BufRead, BufWriter, Read, Write},
+    io::{self, BufRead, BufReader, BufWriter, Write},
     path::{Path, PathBuf},
 };
 
@@ -35,13 +26,10 @@ fn stream_tar_gz(path: &Path, writer: &mut BufWriter<File>) -> Result<()> {
     let mut archive = Archive::new(decoder);
 
     for entry in archive.entries()? {
-        let mut entry = entry?;
+        let entry = entry?;
         if entry.header().entry_type().is_file() {
-            // Check that each file (content, not path) must only contain valid utf-8 text or it will be skipped.
-            let mut tmp_out_to_check = Vec::new();
-            entry.read_to_end(&mut tmp_out_to_check)?;
-
-            for line in tmp_out_to_check.lines() {
+            let reader = BufReader::new(entry);
+            for line in reader.lines() {
                 // Check if the line is valid UTF-8
                 match line {
                     Ok(line) => {
@@ -50,11 +38,7 @@ fn stream_tar_gz(path: &Path, writer: &mut BufWriter<File>) -> Result<()> {
                         writer.write_all(b"\n")?; // Ensure each log entry is on a new line
                     }
                     Err(e) => {
-                        eprintln!(
-                            "Skipping invalid UTF-8 line in file: {} ({})",
-                            entry.path()?.display(),
-                            e
-                        );
+                        eprintln!("Skipping invalid UTF-8 line ({})", e);
                         continue;
                     }
                 }
@@ -97,6 +81,10 @@ fn main() -> Result<()> {
         let entry = entry?;
         let path = entry.path();
         if !path.is_file() {
+            continue;
+        }
+        // Only process files with .tar.gz or .zip extensions
+        if path.extension() != Some("tar.gz".as_ref()) && path.extension() != Some("zip".as_ref()) {
             continue;
         }
 
