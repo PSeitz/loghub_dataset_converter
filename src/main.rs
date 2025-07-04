@@ -84,7 +84,7 @@ fn main() -> Result<()> {
             continue;
         }
         // Only process files with .tar.gz or .zip extensions
-        if path.extension() != Some("tar.gz".as_ref()) && path.extension() != Some("zip".as_ref()) {
+        if path.extension() != Some("gz".as_ref()) && path.extension() != Some("zip".as_ref()) {
             continue;
         }
 
